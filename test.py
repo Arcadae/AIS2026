@@ -1,62 +1,32 @@
-import matplotlib.pyplot as plt
-from typing import Callable, Any
-from time import perf_counter, time
-from City import City
+from Map import Map
 import random
 from CustomKMeans import CustomKMeans
-from JarvisMarch import JarvisMarch
-from Clusterizer import Clusterizer
 from sklearn.cluster import KMeans
+import math
 
 def main():
-    clusterizer = Clusterizer()
 
-    experimental_data = [City(random.randint(1, 100), random.randint(1, 100)) for _ in range(300)]
-    experimental_data_for_KMeans = [(city.x, city.y) for city in experimental_data]
+        N: int = 100
+        experimental_data = [City(random.randint(1,N),random.randint(1,N)) for i in range(N)]
+        experimental_data_for_Kmeans = [(city.x,city.y) for city in experimental_data]
+        CKmeans = CustomKMeans(k=3,random_seed=42)
+        Kmeans = KMeans(n_clusters=3, random_state=42, n_init="auto").fit(experimental_data_for_Kmeans)
+        centers_KMeans = Kmeans.cluster_centers_
+        wcss_KMeans = 0
+        distance_KMeans = 0
+        for city,center in zip(experimental_data_for_Kmeans,Kmeans.labels_):
+            distance_KMeans = (math.pow((centers_KMeans[center][0] - city[0]), 2) + math.pow((centers_KMeans[center][1] - city[1]), 2))
+            wcss_KMeans += math.sqrt(distance_KMeans)
 
-    X_plot = [5,10,15,20,25,30]
-    Y_plot_alg = [0,0,0,0,0,0]
-    Y_plot_CKmeans = [0,0,0,0,0,0]
-    Y_plot_Kmeans = [0,0,0,0,0,0]
+        wcss_CKMeans = 0
+        clusters_CKMeans = CKmeans.fit(experimental_data)
+        centers_CKMeans = CKmeans.get_cluster_centers()
+        for cluster,center in zip(clusters_CKMeans,centers_CKMeans):
+              distance_CKMeans = 0
+              for city in cluster:
+                    distance_CKMeans = (math.pow((center[0] - city.x), 2) + math.pow((center[1] - city.y), 2))
+                    wcss_CKMeans += math.sqrt(distance_CKMeans)
 
-    for _ in range(6):
-        start_time = perf_counter()
-        clusterizer.set_points(experimental_data)
-        hull_points = JarvisMarch.jarvis_march(experimental_data)
-        clusterizer.select_centers_from_hull(hull_points, X_plot[_])
-        clusterizer.assign_points_to_clusters()
-        end_time = perf_counter()
-        Y_plot_alg[_] = end_time - start_time
-
-    for _ in range(6):
-        start_time = perf_counter()
-        CKmeans = CustomKMeans(k=X_plot[_],random_seed=42)
-        CKmeans.fit(experimental_data)
-        end_time = perf_counter()
-        Y_plot_CKmeans[_] = end_time - start_time
-    
-    for _ in range(6):
-        start_time = perf_counter()
-        Kmeans = KMeans(n_clusters=X_plot[_], random_state=0, n_init="auto")
-        Kmeans.fit(experimental_data_for_KMeans)
-        end_time = perf_counter()
-        Y_plot_Kmeans[_] = end_time - start_time
-
-    print(f"Значение || Алг. || CKMeans || KMeans")
-    for x,i,j,k in zip(X_plot,Y_plot_alg,Y_plot_CKmeans,Y_plot_Kmeans):
-        print(f"{x} || {i} || {j} || {k}")
-
-    plt.plot(X_plot, Y_plot_alg, label='Алгоритм')
-    plt.plot(X_plot, Y_plot_CKmeans, label='Кастомный KMeans')
-    plt.plot(X_plot, Y_plot_Kmeans, label='KMeans')
-
-    plt.legend()
-    plt.xlabel('x')
-    plt.ylabel('y')
-    plt.title('Реализации')
-    plt.grid(True)
-
-    plt.show()
-
+        print(f"WCSS CKMeans: {round(wcss_CKMeans, 5)}\t ||\t WCSS KMeans: {round(wcss_KMeans, 5)}")
 if __name__ == "__main__":
     main()
